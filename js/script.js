@@ -90,7 +90,7 @@ function simplifyPos(tag) {
   }
 }
 // future version must identify gerunds, remove 'ing' then replace  after synonym found
-// also, gerunds should reject synonyms of > 1 word, 
+// also, gerunds should reject synonyms of > 1 word,
 // otherwise gerund conversion will create staying > stick arounding
 
 
@@ -98,64 +98,51 @@ function simplifyPos(tag) {
 function createWhiteList(words){
   $.each(words, function(i,val){
     var blackListTest = cleanBlacklist(words[i]);
-    if (blackListTest) { wordsWhiteList[i] = { word: words[i], pos: simplifyPos(posTester(words[i]))}; }
+    if (blackListTest) { wordsWhiteList[i] = { word: { orig: words[i], syn: {} }, pos: simplifyPos(posTester(words[i]))}; }
   });
 }
 
 /* =============================================================================
-  Add synonym object to {wordList} 
+  Add synonym object to {wordList}
    ========================================================================== */
-
-function createSynonymObject(wordsWhiteList) {
-    for(var prop in wordsWhiteList) {
-      if(wordsWhiteList.hasOwnProperty(prop)) {
-        // [prop] is the index holding an object with word and pos
-        getSynonym(wordsWhiteList[prop],wordsWhiteList);
-      }
-    }
-}
-
-function assignSyn(wordItem, json, pos){
-  wordItem['syn'] = json[pos]['syn'];
-}
 
 var apiKey = '086eaa6fe5c287a37b6e25a09586e7a9';
 // http://words.bighugelabs.com/api/2/086eaa6fe5c287a37b6e25a09586e7a9/ /json
 
-function getSynonym(word , wordsWhiteList) {
-  var wordItem = word.word;
-  var pos = word.pos;
-  $.ajax({
-       url:'http://words.bighugelabs.com/api/2/'+ apiKey + '/' + wordItem + '/json?callback=?',
-       dataType: 'json',
-       complete : function(jqXHR , textStatus) {
-         if (textStatus === 'parseerror') {
-            console.log(wordItem + " doesn't have any synonyms");
-         }
-       },
-       success : function(json){
-        if (json[pos]) {
-          assignSyn(word, json, pos);
-          replaceText();
-        } else {
-          console.log('wrong part of speech');
-        }
-       },
-       error : function(){
-        console.log('error');
-       }
+$.getSynonym = function(word) {
+  return  $.ajax({
+       url:'http://words.bighugelabs.com/api/2/'+ apiKey + '/' + word + '/json?callback=?',
+       dataType: 'json'
+   }).promise();
+};
+
+function assignSyn(word, pos){
+  wordOrig = word['orig'];
+  $.getSynonym(wordOrig).then(function(results) {
+     word['syn'] = results[pos]['syn'];
   });
 }
 
+
+function createSynonymObject(wordList) {
+  for (var prop in wordList) {
+    if (wordList.hasOwnProperty(prop)) {
+      var word = wordList[prop]['word'];
+      var pos = wordList[prop]['pos'];
+      assignSyn(word, pos);
+    }
+  }
+}
+
 /* =============================================================================
-  Render thesaur-ized text 
+  Render thesaur-ized text
    ========================================================================== */
 
 function replaceText() {
     $.each(words, function(i,val) {
         if (wordsWhiteList[i]) {
           if(wordsWhiteList[i]['syn']) {
-            var numSyn = wordsWhiteList[i]['syn'].length; 
+            var numSyn = wordsWhiteList[i]['syn'].length;
             var index = Math.ceil((Math.random()*numSyn-1)).toFixed();
             words[i] = '<span style="color:#993f11">' + wordsWhiteList[i]['syn'][index] + '</span>';
           }
@@ -184,7 +171,7 @@ function replaceText() {
     words = S(original).collapseWhitespace().stripPunctuation().split(" ");
     console.log(words);
 
-    wordsWhiteList = {}; 
+    wordsWhiteList = {};
     // take words, filter against posBlacklist & wordBlacklist
     // then build wordsWhiteList{} by running posTester() with key index and values [word] & [pos]
     createWhiteList(words);
@@ -196,7 +183,7 @@ function replaceText() {
   });
 
 
-// next steps: 
+// next steps:
 //   * find punctuation and save to word object.
 //   * re-insert puncatation during replacetext()
 
