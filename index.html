@@ -17,9 +17,11 @@
     <body>
 
         <form id="form" action="">
-            <textarea id="area" rows="4" cols="50"></textarea>
+            <textarea id="area" rows="12" cols="50"></textarea>
             <input type="submit">
         </form>
+
+        <a href="#" class="shuffle-words">Shuffle words</a>
 
         <div class="result"></div>
 
@@ -36,5 +38,10 @@
 
 
     <script src="js/script.js"></script>
+    <script>
+       $('.shuffle-words').on('click',function(){
+        replaceText();
+       });
+    </script>
     </body>
 </html>

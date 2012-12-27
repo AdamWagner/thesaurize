@@ -28,7 +28,9 @@ var wordBlacklist = [ // converted to lower case before testing
   'thousand',
   'be',
   'more',
-  'adam'
+  'adam',
+  'his',
+  'hers'
 ];
 
 // part-of-speech tags to reject for thesaurus lookup
@@ -53,7 +55,6 @@ var posBlacklist = [
  'LS'     // list item marker
 ];
 
-
 /* ===========================================================================================
   Test word array against blacklist, run part-of-speech tester, create whitelist obj
    =========================================================================================== */
@@ -76,10 +77,9 @@ function isUpperCase( word ) {
   return (/^[A-Z]+$/).test(word.charAt(0));
 }
 
-
 // convert pos-tagger flags to simpler part-of-speech tags for big huge thesaurus api
 function simplifyPos(tag) {
-  if ( tag === 'NN' ) {
+  if ( tag === 'NN' || tag === 'NNS') {
     return 'noun';
   } else if ( tag === 'VB' || tag === 'VBD' || tag === 'VBG' || tag === 'VBN' || tag === 'VBP' || tag === 'VBZ') {
       return 'verb';
@@ -95,10 +95,18 @@ function simplifyPos(tag) {
 
 
 // note: Key of wordsWhiteList is index of word in original text
-function createWhiteList(words){
-  $.each(words, function(i,val){
+function createWhiteList(words) {
+  $.each(words, function(i,val) {
     var blackListTest = cleanBlacklist(words[i]);
-    if (blackListTest) { wordsWhiteList[i] = { word: { orig: words[i], syn: {} }, pos: simplifyPos(posTester(words[i]))}; }
+    if (blackListTest) {
+      wordsWhiteList[i] = {
+        word: {
+          orig: words[i],
+          syn: {} },
+          pos: simplifyPos(posTester(words[i]))
+      };
+      console.log('LIST: ' + words[i] + ' is ' + posTester(words[i]) );
+    }
   });
 }
 
@@ -118,11 +126,11 @@ $.getSynonym = function(word) {
 
 function assignSyn(word, pos){
   wordOrig = word['orig'];
+  console.log('ASSIGN ' + wordOrig + ' is ' + pos);
   $.getSynonym(wordOrig).then(function(results) {
      word['syn'] = results[pos]['syn'];
   });
 }
-
 
 function createSynonymObject(wordList) {
   for (var prop in wordList) {
@@ -139,49 +147,47 @@ function createSynonymObject(wordList) {
    ========================================================================== */
 
 function replaceText() {
-    $.each(words, function(i,val) {
-        if (wordsWhiteList[i]) {
-          if(wordsWhiteList[i]['syn']) {
-            var numSyn = wordsWhiteList[i]['syn'].length;
-            var index = Math.ceil((Math.random()*numSyn-1)).toFixed();
-            words[i] = '<span style="color:#993f11">' + wordsWhiteList[i]['syn'][index] + '</span>';
-          }
+  $.each(words, function(i,val) {
+      if (wordsWhiteList[i]) {
+        if(wordsWhiteList[i]['word']['syn'].length > 0) {
+          var numSyn = wordsWhiteList[i]['word']['syn'].length;
+          var index = Math.ceil((Math.random()*numSyn-1)).toFixed();
+          console.log(index);
+          words[i] = '<span class="synonym">' + wordsWhiteList[i]['word']['syn'][index] + '</span>';
         }
-      });
-    setTimeout(function() {
-      $('#result').html(words.join(' '));
-    }, 100);
+      }
+    });
+  setTimeout(function() {
+    $('#result').html(words.join(' '));
+  }, 100);
 }
-
-
 
 /* =============================================================================
   Setup + init
    ========================================================================== */
 
-    var words = [];
-    var original;
-    wordsWhiteList = {}; // 'original position' : {word -> word, pos}
+var words = [];
+var original;
+wordsWhiteList = {}; // 'original position' : {word -> word, pos}
 
-  $('#form').submit(function(e){
-    e.preventDefault();
-   
-    // create array of words in #text
-    original = $('#area').val();
-    words = S(original).collapseWhitespace().stripPunctuation().split(" ");
-    console.log(words);
+$('#form').submit(function(e){
+  e.preventDefault();
+ 
+  // create array of words in #text
+  original = $('#area').val();
+  words = S(original).collapseWhitespace().stripPunctuation().split(" ");
+  console.log(words);
 
-    wordsWhiteList = {};
-    // take words, filter against posBlacklist & wordBlacklist
-    // then build wordsWhiteList{} by running posTester() with key index and values [word] & [pos]
-    createWhiteList(words);
+  wordsWhiteList = {};
+  // take words, filter against posBlacklist & wordBlacklist
+  // then build wordsWhiteList{} by running posTester() with key index and values [word] & [pos]
+  createWhiteList(words);
 
-    // take wordsWhiteList{} and for each prop (which is an object with keys [word & [pos]]) ...
-    // run getSynonym(), which creates wrodsSynObj ...
-    // with keys of words holding an array of synonums
-    createSynonymObject(wordsWhiteList);
-  });
-
+  // take wordsWhiteList{} and for each prop (which is an object with keys [word & [pos]]) ...
+  // run getSynonym(), which creates wrodsSynObj ...
+  // with keys of words holding an array of synonums
+  createSynonymObject(wordsWhiteList);
+});
 
 // next steps:
 //   * find punctuation and save to word object.
