@@ -73,6 +73,11 @@ function cleanBlacklist( word ) {
   }
 }
 
+// GERUND -> INFINITIVE: for verbs ending in a short vowel followed by a consonant:
+// test = are the letters preceding 'ing' both consonants and are they equal
+// chop off last four letters.  e.g. - chopping --> chop
+
+
 function isUpperCase( word ) {
   return (/^[A-Z]+$/).test(word.charAt(0));
 }
